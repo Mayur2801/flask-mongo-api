@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/your-username/flask-mongo-api.git'
+                git 'https://github.com/Mayur2801/flask-mongo-api.git'
             }
         }
 
