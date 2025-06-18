@@ -2,59 +2,46 @@ pipeline {
     agent any
 
     environment {
-        COMPOSE = 'docker-compose'
-        GIT_REPO = 'https://github.com/Mayur2801/flask-mongo-api.git'
-        BRANCH = 'main' // Update if your branch is different
-    }
-
-    options {
-        timestamps()
-        skipDefaultCheckout(true)
+        COMPOSE = "/usr/local/bin/docker-compose"
+        REPO_URL = "https://github.com/Mayur2801/flask-mongo-api.git"
+        APP_DIR = "flask-mongo-api"
     }
 
     stages {
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()
+            }
+        }
         stage('Clone Repository') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "*/${env.BRANCH}"]],
-                    userRemoteConfigs: [[url: "${env.GIT_REPO}"]]
-                ])
+                git branch: 'main', url: "${REPO_URL}"
             }
         }
-
-        stage('Build Docker Images') {
+        stage('Remove Existing Containers') {
             steps {
-                sh "${COMPOSE} build"
+                // Remove flask_api container if it exists to avoid name conflicts
+                sh 'docker rm -f flask_api || true'
+                sh 'docker rm -f mongo || true'
             }
         }
-
-        stage('Deploy Services') {
+        stage('Build and Deploy') {
             steps {
-                sh """
-                    ${COMPOSE} down || true
-                    ${COMPOSE} up -d
-                """
+                dir("${APP_DIR}") {
+                    sh "${COMPOSE} build"
+                    sh "${COMPOSE} up -d"
+                }
             }
         }
-    }
-
-    post {
-        always {
-            script {
-                sh "mkdir -p logs || true"
-                sh "docker logs flask_api > logs/api.log || true"
+        stage('Save Logs') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh 'mkdir -p logs'
+                    // Capture Flask API container logs
+                    sh "docker logs flask_api > logs/api.log || true"
+                    archiveArtifacts artifacts: 'logs/api.log', fingerprint: true
+                }
             }
-
-            archiveArtifacts artifacts: 'logs/**', allowEmptyArchive: true
-        }
-
-        success {
-            echo "✅ Deployment succeeded!"
-        }
-
-        failure {
-            echo "❌ Deployment failed. Check logs for troubleshooting."
         }
     }
 }
