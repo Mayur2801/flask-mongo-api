@@ -4,7 +4,7 @@ pipeline {
     environment {
         COMPOSE = 'docker-compose'
         GIT_REPO = 'https://github.com/Mayur2801/flask-mongo-api.git'
-        BRANCH = 'main' // or 'master' if that’s your default branch
+        BRANCH = 'main' // Update if your branch is different
     }
 
     options {
@@ -18,9 +18,7 @@ pipeline {
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: "*/${env.BRANCH}"]],
-                    userRemoteConfigs: [[
-                        url: "${env.GIT_REPO}"
-                    ]]
+                    userRemoteConfigs: [[url: "${env.GIT_REPO}"]]
                 ])
             }
         }
@@ -51,12 +49,12 @@ pipeline {
             archiveArtifacts artifacts: 'logs/**', allowEmptyArchive: true
         }
 
-        failure {
-            echo "❌ Build or Deployment failed. Check logs for details."
+        success {
+            echo "✅ Deployment succeeded!"
         }
 
-        success {
-            echo "✅ Flask API and MongoDB deployed successfully!"
+        failure {
+            echo "❌ Deployment failed. Check logs for troubleshooting."
         }
     }
 }
